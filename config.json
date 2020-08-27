@@ -1,0 +1,4 @@
+{
+  "groups": ["general", "pwn", "crypto", "forensics", "rev", "web", "misc", "osint"],
+  "status": ["IN_PROGRESS", "FINISHED", "PRACTICE", "INITIAL", "FINISHED_PRACTICE"]
+}
