@@ -18,7 +18,21 @@ if __name__ == "__main__":
 		sys.exit(1)
 
 	if argvs[1] == "-h" or argvs[1] == "--help":
-		pass
+		print()
+		print("Usage: ctftool [-h] COMMAND")
+		print()
+		print("A tool for managing ctf writeups and storage")
+		print()
+		print("Options:\n\t-h, --help\tDisplays the help menu")
+		print()
+		print("Commands:")
+		print(" create\t\tCreates a directory for the ctf")
+		print(" addchall\tCreates a CTF chall and adds a writeup boilerplate")
+		print(" settings\tChange local CTF settings")
+		print(" finish\t\tMarks a chall as FINISHED")
+		print(" list\t\tLists all chall info")
+		print(" rm\t\tRemove a CTF chall")
+		print(" setchall\tSets chall settings (add --help or -h on a setting for more information)")
 
 	elif argvs[1] == "create":
 		with open(localpath() + "config.json", "r") as f:
@@ -61,7 +75,7 @@ if __name__ == "__main__":
 
 		with open(".ctfinit/config.json", "r") as f:
 			js = json.load(f)
-		parser = argparse.ArgumentParser(description="Creates a CTF chall")
+		parser = argparse.ArgumentParser(description="Creates a CTF chall and adds a writeup boilerplate")
 		parser.add_argument("name", type=str, help="Name of the chall")
 		parser.add_argument("-p", "--points", type=int, default=0, help="Sets the points earned for the chall")
 		parser.add_argument("-g", "--group", type=str, default=js["groups"][0], help="Sets the chall type",
@@ -148,7 +162,7 @@ if __name__ == "__main__":
 		if cwd == "":
 			print("fatal: not a ctf repository (or any of the parent directories): .ctfinit")
 			sys.exit(1)
-		parser = argparse.ArgumentParser(description="Change local ctf settings")
+		parser = argparse.ArgumentParser(description="Change local CTF settings")
 		parser.add_argument("setting", type=str, help="Setting choice", choices=["addgroup", "rmgroup", "addstatus", "rmstatus"])
 		parser.add_argument("value", type=str, help="Setting the value")
 		args = parser.parse_args(argvs[2:])
@@ -305,9 +319,9 @@ if __name__ == "__main__":
 		if cwd == "":
 			print("fatal: not a chall folder (or any of the parent directories): .chall")
 			sys.exit(1)
-		if len(argvs) > 2:
-			print("fatal: finish requires no arguments")
-			sys.exit(1)
+		parser = argparse.ArgumentParser(description="Marks a chall as FINISHED")
+		parser.add_argument("-f", "--flag", type=str, help="Adds the flag to the information", default="")
+		args = parser.parse_args(argvs[2:])
 		with open(".chall", "r") as f:
 			text = f.read()
 		name = text.split("\n")[0][6:]
@@ -317,6 +331,8 @@ if __name__ == "__main__":
 			stored = f.read()
 		newstat = "status: FINISHED"
 		splitted = stored.split("\n")
+		if args.flag != "":
+			splitted[4] = args.flag
 		splitted[3] = newstat
 		returned = "\n".join(splitted)
 		with open(name, "w") as f:
@@ -341,8 +357,17 @@ if __name__ == "__main__":
 		if cwd == "":
 			print("fatal: not a ctf repository (or any of the parent directories): .ctfinit")
 			sys.exit(1)
-		if len(argvs) > 2:
-			print("fatal: finish requires no arguments")
+		if len(argvs) == 3 and argvs[2] in ["-h", "--help"]:
+			print()
+			print("Usage: list")
+			print()
+			print("Lists all chall info")
+			sys.exit(1)
+		elif len(argvs) == 3 and argvs[2] not in ["-h", "--help"]:
+			print("fatal: list requires no arguments")
+			sys.exit(1)
+		if len(argvs) > 3:
+			print("fatal: list requires no arguments")
 			sys.exit(1)
 		for i in os.listdir(".ctfinit"):
 			if i != "name" and i != "config.json":
@@ -354,7 +379,14 @@ if __name__ == "__main__":
 					points = info.split("\n")[1][8:]
 					group = info.split("\n")[2][7:]
 					status = info.split("\n")[3][8:]
-					line = "\t" + name + " - " + points + ": " + status
+					try:
+						if info.split("\n")[4] != "":
+							flag = "  ( " + info.split("\n")[4] + " )"
+						else:
+							flag = ""
+					except:
+						flag = ""
+					line = "\t" + name + " - " + points + ": " + status + flag
 					print(line)
 	elif argvs[1] == "rm":
 		cwd = os.getcwd()
@@ -373,7 +405,7 @@ if __name__ == "__main__":
 		if cwd == "":
 			print("fatal: not a ctf repository (or any of the parent directories): .ctfinit")
 			sys.exit(1)
-		parser = argparse.ArgumentParser(description="Remove a ctf chall")
+		parser = argparse.ArgumentParser(description="Remove a CTF chall")
 		parser.add_argument("name", type=str, help="Name of the challenge")
 		parser.add_argument("-f", "--force",  help="Ignore y/n question", action="store_true")
 		args = parser.parse_args(argvs[2:])
@@ -413,9 +445,448 @@ if __name__ == "__main__":
 		os.system("git add --all")
 		os.system('git commit -am "Chall ' + args.name + ' deleted"')
 		print("Removed " + args.name + "!")
+	elif argvs[1] == "setchall":
+		cwd = os.getcwd()
+		ctfinit = False
+		while cwd != "" and not ctfinit:
+			cfiles = [d for d in os.listdir('.')]
+			if not ".chall" in cfiles:
+				if cwd == "/":
+					cwd = ""
+				else:
+					os.chdir("..")
+					cwd = os.getcwd()
+
+			else:
+				ctfinit = True
+		if cwd == "":
+			print("fatal: not a chall folder (or any of the parent directories): .chall")
+			sys.exit(1)
+		parser = argparse.ArgumentParser(description="Sets chall settings (add --help or -h on a setting for more information)")
+		parser.add_argument("setting", type=str, help="Setting of the chall", choices=["name", "group", "points", "status", "solution", "flag"])
+		parser.add_argument("value", type=str, help="New value of setting")
+		args = parser.parse_args(argvs[2:])
+		if args.setting == "status":
+			if args.value in ["-h", "--help"]:
+				print("Allowed values: existing statuses")
+				sys.exit(1)
+			with open(".chall", "r") as f:
+				basic_info = f.read()
+			name = basic_info.split("\n")[0][6:]
+			group = basic_info.split("\n")[1][7:]
+			os.chdir("..")
+			with open(".ctfinit/" + group + "/" + name, "r") as f:
+				allinfo = f.read()
+			with open(".ctfinit/config.json", "r") as f:
+				js = json.load(f)
+			splitted = allinfo.split("\n")
+			if args.value not in js["status"]:
+				print("fatal: status does not exist")
+				sys.exit(1)
+			splitted[3] = "status: " + args.value
+			with open(".ctfinit/" + group + "/" + name, "w") as f:
+				f.write("\n".join(splitted))
+			os.system("git add --all")
+			os.system('git commit -am "Status of chall ' + name + ' changed to ' + args.value + '"')
+			print("Status changed to " + args.value + "!")
+		if args.setting == "name":
+			if args.value in ["-h", "--help"]:
+				print("Allowed values: allowed foldernames")
+				sys.exit(1)
+			with open(".chall", "r") as f:
+				t = f.read()
+				group = t.split("\n")[1][7:]
+				name = t.split("\n")[0][6:]
+			os.chdir("..")
+			with open(".ctfinit/" + group + "/" + name, "r") as f:
+				t1 = f.read()
+				points = t1.split("\n")[1][8:]
+				status = t1.split("\n")[3][8:]
+			os.remove(".ctfinit/" + group + "/" + name)
+			with open("README.md", "r") as f:
+				md = f.read()
+			tb = md.split("## " + group + "\nName | Points\n-----|--------")
+			tb1 = tb[1].split("\n##")
+			tb2 = tb1[0].split("\n")
+			for index, val in enumerate(tb2):
+				if val.startswith("[" + name):
+					correctind = index
+			del tb2[correctind]
+			if len(tb2) > 2:
+				tb1[0] = "\n".join(tb2)
+				tb[1] = "\n##".join(tb1)
+				returned = ("## " + group + "\nName | Points\n-----|--------").join(tb)
+			else:
+				tb1[0] = "".join(tb2)
+				tb[1] = "##".join(tb1)
+				returned = "".join(tb)
+				if returned.endswith("\n\n"):
+					returned = returned[:-1]
+			with open("README.md", "w") as f:
+				f.write(returned)
+			with open(name + "/.chall", "w") as f:
+				f.write("name: " + args.value + "\ngroup: " + group)
+
+			with open('README.md', 'r') as f:
+				md = f.read()
+
+			if "## " + group in md.split("\n"):
+
+				splitted = md.split("\n\n")
+				returned_text = ""
+				for index, val in enumerate(splitted):
+					if val.startswith("## " + group):
+						position = index
+						header = "## " + group + "\nName | Points\n-----|--------"
+						lines = splitted[position].split("-----|--------")[1].split("\n")
+						nums = []
+						for i in lines[1:]:
+							try:
+								nums.append(int(i.split("| ")[1]))
+							except IndexError:
+								pass
+						for index1, val1 in enumerate(nums):
+							if val1 >= args.points:
+								lines.insert(index1 + 1, "[" + args.value + "](" + args.value.replace(" ",
+																									"%20") + "/README.md) | " + str(
+									points))
+								break
+							if index1 == len(nums) - 1:
+								lines.append(
+									"[" + args.value + "](" + args.value.replace(" ", "%20") + "/README.md) | " + str(
+										points))
+								break
+						returned_text += header + "\n".join(lines) + "\n\n"
+					else:
+						returned_text += val + "\n\n"
+				with open("README.md", 'w') as rfile:
+					rfile.write(returned_text[0:-2])
+			else:
+				returned_text = md + "\n## " + group + "\nName | Points\n-----|--------\n" + "[" + args.value + "](" + args.value.replace(
+					" ", "%20") + "/README.md) | " + str(points) + "\n"
+				with open("README.md", 'w') as rfile:
+					rfile.write(returned_text)
+			try:
+				os.mkdir(".ctfinit/" + group)
+			except:
+				pass
+			with open(name + "/README.md", "r") as f:
+				challmd = f.read()
+			cmsplitted = challmd.split("\n")
+			cmsplitted[0] = "# " + args.value
+			with open(name + "/README.md", "w") as f:
+				f.write("\n".join(cmsplitted))
+			os.system('mv "' + name + '/" "' + args.value + '/"')
+			text = "name: " + args.value + "\npoints: " + points + "\ngroup: " + group + "\nstatus: " + status
+			os.system('touch ".ctfinit/' + group + "/" + args.value + '" && echo "' + text + '" > ".ctfinit/' + group + "/" + args.value + '"')
+			os.system("git add --all")
+			os.system('git commit -am "Name of chall ' + name + ' changed to ' + args.value + '"')
+			print("Name changed to " + args.value + "! Please change directory to update the name of the folder. ")
+		if args.setting == "solution":
+			if args.value in ["-h", "--help"]:
+				print("Allowed values: ( 1, 0, True, False )")
+				sys.exit(1)
+			with open(".chall", "r") as f:
+				t = f.read()
+				group = t.split("\n")[1][7:]
+				name = t.split("\n")[0][6:]
+			if args.value not in ["True", "False", "1", "0"]:
+				print("fatal: not a choice (True, False, 1, 0)")
+				sys.exit(1)
+			if args.value in ["True", "1"]:
+				if "solution.sh" not in os.listdir("."):
+					os.system("touch solution.sh && chmod +x solution.sh")
+					with open("README.md", "r") as f:
+						md = f.read()
+					splitted = md.split("\n")
+					splitted.insert(2, "###### [Solution](solution.sh)")
+					with open("README.md", "w") as f:
+						f.write("\n".join(splitted))
+					os.system("git add --all")
+					os.system('git commit -am "Solution added to ' + name + '!"')
+					print("Solution added to " + name)
+				else:
+					print("fatal: solution already exists for this chall")
+					sys.exit(1)
+			else:
+				if "solution.sh" in os.listdir("."):
+					os.remove("solution.sh")
+					with open("README.md", "r") as f:
+						md = f.read()
+					splitted = md.split("\n")
+					del splitted[2]
+					with open("README.md", "w") as f:
+						f.write("\n".join(splitted))
+
+					os.system("git add --all")
+					os.system('git commit -am "Solution removed from ' + name + '!"')
+					print("Solution removed from " + name)
+				else:
+					print("fatal: no solution exists")
+					sys.exit(1)
+		if args.setting == "group":
+			if args.value in ["-h", "--help"]:
+				print("Allowed values: existing groups")
+				sys.exit(1)
+
+			with open("../.ctfinit/config.json") as f:
+				js = json.load(f)
+
+			if args.value not in js["groups"]:
+				print("fatal: group does not exist")
+				sys.exit(1)
+
+			with open(".chall", "r") as f:
+				t = f.read()
+				group = t.split("\n")[1][7:]
+				name = t.split("\n")[0][6:]
+			os.chdir("..")
+			with open(".ctfinit/" + group + "/" + name, "r") as f:
+				t1 = f.read()
+				points = t1.split("\n")[1][8:]
+				status = t1.split("\n")[3][8:]
+			os.remove(".ctfinit/" + group + "/" + name)
+			with open("README.md", "r") as f:
+				md = f.read()
+			tb = md.split("## " + group + "\nName | Points\n-----|--------")
+			tb1 = tb[1].split("\n##")
+			tb2 = tb1[0].split("\n")
+			for index, val in enumerate(tb2):
+				if val.startswith("[" + name):
+					correctind = index
+			del tb2[correctind]
+			if len(tb2) > 2:
+				tb1[0] = "\n".join(tb2)
+				tb[1] = "\n##".join(tb1)
+				returned = ("## " + group + "\nName | Points\n-----|--------").join(tb)
+			else:
+				tb1[0] = "".join(tb2)
+				tb[1] = "##".join(tb1)
+				returned = "".join(tb)
+				if returned.endswith("\n\n"):
+					returned = returned[:-1]
+			with open("README.md", "w") as f:
+				f.write(returned)
+			with open(name + "/.chall", "w") as f:
+				f.write("name: " + name + "\ngroup: " + args.value)
+
+			with open('README.md', 'r') as f:
+				md = f.read()
+
+			if "## " + args.value in md.split("\n"):
+
+				splitted = md.split("\n\n")
+				returned_text = ""
+				for index, val in enumerate(splitted):
+					if val.startswith("## " + args.value):
+						position = index
+						header = "## " + args.value + "\nName | Points\n-----|--------"
+						lines = splitted[position].split("-----|--------")[1].split("\n")
+						nums = []
+						for i in lines[1:]:
+							try:
+								nums.append(int(i.split("| ")[1]))
+							except IndexError:
+								pass
+						for index1, val1 in enumerate(nums):
+							if val1 >= args.points:
+								lines.insert(index1 + 1, "[" + name + "](" + name.replace(" ",
+																									"%20") + "/README.md) | " + str(
+									points))
+								break
+							if index1 == len(nums) - 1:
+								lines.append(
+									"[" + name + "](" + name.replace(" ", "%20") + "/README.md) | " + str(
+										points))
+								break
+						returned_text += header + "\n".join(lines) + "\n\n"
+					else:
+						returned_text += val + "\n\n"
+				with open("README.md", 'w') as rfile:
+					rfile.write(returned_text[0:-2])
+			else:
+				returned_text = md + "\n## " + args.value + "\nName | Points\n-----|--------\n" + "[" + name + "](" + name.replace(
+					" ", "%20") + "/README.md) | " + str(points) + "\n"
+				with open("README.md", 'w') as rfile:
+					rfile.write(returned_text)
+			try:
+				os.mkdir(".ctfinit/" + args.value)
+			except:
+				pass
+			text = "name: " + name + "\npoints: " + points + "\ngroup: " + args.value + "\nstatus: " + status
+			os.system('touch ".ctfinit/' + args.value + "/" + name + '" && echo "' + text + '" > ".ctfinit/' + args.value + "/" + name + '"')
+			os.system("git add --all")
+			os.system('git commit -am "Group of chall ' + name + ' changed to ' + args.value + '"')
+			print("Group of chall " + name + " changed to " + args.value)
+		if args.setting == "points":
+			if args.value in ["-h", "--help"]:
+				print("Allowed values: ( integers )")
+				sys.exit(1)
+			try:
+				pointval = int(args.value)
+			except TypeError:
+				print("fatal: non-integer points are not valid")
+				sys.exit(1)
+			with open(".chall", "r") as f:
+				t = f.read()
+				group = t.split("\n")[1][7:]
+				name = t.split("\n")[0][6:]
+			os.chdir("..")
+			with open(".ctfinit/" + group + "/" + name, "r") as f:
+				t1 = f.read()
+				points = t1.split("\n")[1][8:]
+				status = t1.split("\n")[3][8:]
+			os.remove(".ctfinit/" + group + "/" + name)
+			with open("README.md", "r") as f:
+				md = f.read()
+			tb = md.split("## " + group + "\nName | Points\n-----|--------")
+			tb1 = tb[1].split("\n##")
+			tb2 = tb1[0].split("\n")
+			for index, val in enumerate(tb2):
+				if val.startswith("[" + name):
+					correctind = index
+			del tb2[correctind]
+			if len(tb2) > 2:
+				tb1[0] = "\n".join(tb2)
+				tb[1] = "\n##".join(tb1)
+				returned = ("## " + group + "\nName | Points\n-----|--------").join(tb)
+			else:
+				tb1[0] = "".join(tb2)
+				tb[1] = "##".join(tb1)
+				returned = "".join(tb)
+				if returned.endswith("\n\n"):
+					returned = returned[:-1]
+			with open("README.md", "w") as f:
+				f.write(returned)
+			with open(name + "/.chall", "w") as f:
+				f.write("name: " + name + "\ngroup: " + group)
+
+			with open('README.md', 'r') as f:
+				md = f.read()
+
+			if "## " + group in md.split("\n"):
+
+				splitted = md.split("\n\n")
+				returned_text = ""
+				for index, val in enumerate(splitted):
+					if val.startswith("## " + group):
+						position = index
+						header = "## " + group + "\nName | Points\n-----|--------"
+						lines = splitted[position].split("-----|--------")[1].split("\n")
+						nums = []
+						for i in lines[1:]:
+							try:
+								nums.append(int(i.split("| ")[1]))
+							except IndexError:
+								pass
+						for index1, val1 in enumerate(nums):
+							if val1 >= pointval:
+								lines.insert(index1 + 1, "[" + name + "](" + name.replace(" ",
+																						  "%20") + "/README.md) | " + str(
+									pointval))
+								break
+							if index1 == len(nums) - 1:
+								lines.append(
+									"[" + name + "](" + name.replace(" ", "%20") + "/README.md) | " + str(
+										pointval))
+								break
+						returned_text += header + "\n".join(lines) + "\n\n"
+					else:
+						returned_text += val + "\n\n"
+				with open("README.md", 'w') as rfile:
+					rfile.write(returned_text[0:-2])
+			else:
+				returned_text = md + "\n## " + group + "\nName | Points\n-----|--------\n" + "[" + name + "](" + name.replace(
+					" ", "%20") + "/README.md) | " + str(pointval) + "\n"
+				with open("README.md", 'w') as rfile:
+					rfile.write(returned_text)
+			try:
+				os.mkdir(".ctfinit/" + args.value)
+			except:
+				pass
+			text = "name: " + name + "\npoints: " + str(pointval) + "\ngroup: " + group + "\nstatus: " + status
+			os.system(
+				'touch ".ctfinit/' + args.value + "/" + name + '" && echo "' + text + '" > ".ctfinit/' + group + "/" + name + '"')
+			os.system("git add --all")
+			os.system('git commit -am "Points of chall ' + name + ' changed to ' + args.value + '"')
+			print("Points of chall " + name + " changed to " + args.value)
+		if args.setting == "flag":
+			if args.value in ["-h", "--help"]:
+				print("Allowed values: ( <flagname>, 0, \"\", False )")
+				sys.exit(1)
+			with open(".chall", "r") as f:
+				t = f.read()
+				group = t.split("\n")[1][7:]
+				name = t.split("\n")[0][6:]
+			os.chdir("..")
+			if args.value in ["", "0", "False"]:
+				with open("../.ctfinit/" + group + "/" + name, "r") as f:
+					text = f.read()
+				if len(text.split("\n")) == 4:
+					print("fatal: flag missing")
+					sys.exit(0)
+				else:
+					r = text.split("\n")
+					del r[4]
+					with open("../.ctfinit/" + group + "/" + name, "w") as f:
+						f.write("\n".join(r))
+
+					os.system('git commit -am "Flag of chall ' + name + ' removed"')
+					print("Flag of chall " + name + " removed.")
+			else:
+				with open("../.ctfinit/" + group + "/" + name, "r") as f:
+					text = f.read()
+				rr = text.split("\n")
+				if len(rr) == 4:
+					rr.append(args.value)
+				else:
+					rr[4] = args.value
+				with open("../.ctfinit/" + group + "/" + name, "w") as f:
+					f.write("\n".join(rr))
+				os.system("git add --all")
+				os.system('git commit -am "Flag of chall ' + name + ' changed to ' + args.value + '"')
+				print("Flag of chall " + name + " changed to " + args.value)
+	elif argvs[1] == "info":
+		cwd = os.getcwd()
+		ctfinit = False
+		while cwd != "" and not ctfinit:
+			cfiles = [d for d in os.listdir('.')]
+			if not ".chall" in cfiles:
+				if cwd == "/":
+					cwd = ""
+				else:
+					os.chdir("..")
+					cwd = os.getcwd()
+
+			else:
+				ctfinit = True
+		if cwd == "":
+			print("fatal: not a chall folder (or any of the parent directories): .chall")
+			sys.exit(1)
+
+		if len(argvs) == 3 and argvs[2] in ["-h", "--help"]:
+			print()
+			print("Usage: list")
+			print()
+			print("Shows specific chall info")
+			sys.exit(1)
+		elif len(argvs) == 3 and argvs[2] not in ["-h", "--help"]:
+			print("fatal: info requires no arguments")
+			sys.exit(1)
+		if len(argvs) > 3:
+			print("fatal: info requires no arguments")
+			sys.exit(1)
+		with open(".chall", "r") as f:
+			t = f.read()
+			name = t.split("\n")[0][6:]
+			group = t.split("\n")[1][7:]
+		with open("../.ctfinit/" + group + "/" + name, "r") as f:
+			print(f.read())
+
+
+
 
 # add setchall to change settings of challs, add a help menu
-# Add ct-teams or ctftool-teams to integrate different machines (maybe using socket or github) (probably github)
 
 
 
