@@ -232,54 +232,57 @@ if __name__ == "__main__":
 				json.dump(js, f)
 			if js["groups"][0] not in os.listdir('.ctfinit'):
 				os.system('mkdir ".ctfinit/' + js["groups"][0] + '"')
+			try:
+				for i in os.listdir(".ctfinit/" + args.value):
 
-			for i in os.listdir(".ctfinit/" + args.value):
+					with open('README.md', 'r') as f:
+						md = f.read()
 
-				with open('README.md', 'r') as f:
-					md = f.read()
+					if "## " + js["groups"][0] in md.split("\n"):
 
-				if "## " + js["groups"][0] in md.split("\n"):
+						splitted = md.split("\n\n")
+						returned_text = ""
+						for index, val in enumerate(splitted):
+							if val.startswith("## " + js["groups"][0]):
+								position = index
+								header = "## " + js["groups"][0] + "\nName | Points\n-----|--------"
+								lines = splitted[position].split("-----|--------")[1].split("\n")
+								nums = []
+								for i in lines[1:]:
+									try:
+										nums.append(int(i.split("| ")[1]))
+									except IndexError:
+										pass
+								for index1, val1 in enumerate(nums):
+									if val1 >= js["groups"][0]:
+										with open(".ctfinit/" + args.value + '/' + i, 'r') as f:
+											points = int(f.read().split("\n")[1][8:])
+										lines.insert(index1 + 1,
+													 "[" + i + "](" + i + "/README.md) | " + str(points))
+										break
+									if index1 == len(nums) - 1:
+										lines.append("[" + args.name + "](" + args.name + "/README.md) | " + str(points))
+										break
+								returned_text += header + "\n".join(lines) + "\n\n"
+							elif val.startswith("## " + args.value):
+								pass
+							else:
+								returned_text += val + "\n\n"
+						with open("README.md", 'w') as rfile:
+							rfile.write(returned_text[0:-2])
+					else:
+						with open(".ctfinit/" + args.value + '/' + i, 'r') as f:
+							points = int(f.read().split("\n")[1][8:])
+						returned_text = md + "\n## " + js["groups"][0] + "\nName | Points\n-----|--------\n" + "[" + i + "](" + i.replace(" ", "%20") + "/README.md) | " + str(
+							points) + "\n"
 
-					splitted = md.split("\n\n")
-					returned_text = ""
-					for index, val in enumerate(splitted):
-						if val.startswith("## " + js["groups"][0]):
-							position = index
-							header = "## " + js["groups"][0] + "\nName | Points\n-----|--------"
-							lines = splitted[position].split("-----|--------")[1].split("\n")
-							nums = []
-							for i in lines[1:]:
-								try:
-									nums.append(int(i.split("| ")[1]))
-								except IndexError:
-									pass
-							for index1, val1 in enumerate(nums):
-								if val1 >= js["groups"][0]:
-									with open(".ctfinit/" + args.value + '/' + i, 'r') as f:
-										points = int(f.read().split("\n")[1][8:])
-									lines.insert(index1 + 1,
-												 "[" + i + "](" + i + "/README.md) | " + str(points))
-									break
-								if index1 == len(nums) - 1:
-									lines.append("[" + args.name + "](" + args.name + "/README.md) | " + str(points))
-									break
-							returned_text += header + "\n".join(lines) + "\n\n"
-						elif val.startswith("## " + args.value):
-							pass
-						else:
-							returned_text += val + "\n\n"
-					with open("README.md", 'w') as rfile:
-						rfile.write(returned_text[0:-2])
-				else:
-					with open(".ctfinit/" + args.value + '/' + i, 'r') as f:
-						points = int(f.read().split("\n")[1][8:])
-					returned_text = md + "\n## " + js["groups"][0] + "\nName | Points\n-----|--------\n" + "[" + i + "](" + i.replace(" ", "%20") + "/README.md) | " + str(
-						points) + "\n"
+						returned_text = "\n\n".join([i for i in returned_text.split("\n\n") if not i.startswith("## " + args.value)])
 
-					returned_text = "\n\n".join([i for i in returned_text.split("\n\n") if not i.startswith("## " + args.value)])
+						with open("README.md", 'w') as rfile:
+							rfile.write(returned_text)
+			except FileNotFoundError:
+				pass
 
-					with open("README.md", 'w') as rfile:
-						rfile.write(returned_text)
 
 			try:
 				for i in os.listdir('.ctfinit/' + args.value):
