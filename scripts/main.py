@@ -17,6 +17,7 @@ if __name__ == "__main__":
 		print("ctftool --help")
 		sys.exit(1)
 
+	# noinspection SpellCheckingInspection
 	if argvs[1] == "-h" or argvs[1] == "--help":
 		print()
 		print("Usage: ctftool [-h] COMMAND")
@@ -33,6 +34,8 @@ if __name__ == "__main__":
 		print(" list\t\tLists all chall info")
 		print(" rm\t\tRemove a CTF chall")
 		print(" setchall\tSets chall settings (add --help or -h on a setting for more information)")
+		print(" groups\t\tLists all groups")
+		print(" statuses\tLists all statuses")
 
 	elif argvs[1] == "create":
 		with open(localpath() + "config.json", "r") as f:
@@ -439,7 +442,7 @@ if __name__ == "__main__":
 			returned = ("## " + group + "\nName | Points\n-----|--------").join(tb)
 		else:
 			tb1[0] = "".join(tb2)
-			tb[1] = "##".join(tb1)
+			tb[1] = "\n##".join(tb1).lstrip()
 			returned = "".join(tb)
 			if returned.endswith("\n\n"):
 				returned = returned[:-1]
@@ -521,7 +524,7 @@ if __name__ == "__main__":
 				returned = ("## " + group + "\nName | Points\n-----|--------").join(tb)
 			else:
 				tb1[0] = "".join(tb2)
-				tb[1] = "##".join(tb1)
+				tb[1] = "\n##".join(tb1).lstrip()
 				returned = "".join(tb)
 				if returned.endswith("\n\n"):
 					returned = returned[:-1]
@@ -622,7 +625,7 @@ if __name__ == "__main__":
 						f.write("\n".join(splitted))
 
 					os.system("git add --all")
-					os.system('git commit -am "Solution removed from ' + name + '!"')
+					os.system('git commit -am "Solution removed from ' + name)
 					print("Solution removed from " + name)
 				else:
 					print("fatal: no solution exists")
@@ -664,7 +667,7 @@ if __name__ == "__main__":
 				returned = ("## " + group + "\nName | Points\n-----|--------").join(tb)
 			else:
 				tb1[0] = "".join(tb2)
-				tb[1] = "##".join(tb1)
+				tb[1] = "\n##".join(tb1).lstrip()
 				returned = "".join(tb)
 				if returned.endswith("\n\n"):
 					returned = returned[:-1]
@@ -755,7 +758,7 @@ if __name__ == "__main__":
 				returned = ("## " + group + "\nName | Points\n-----|--------").join(tb)
 			else:
 				tb1[0] = "".join(tb2)
-				tb[1] = "##".join(tb1)
+				tb[1] = "\n##".join(tb1).lstrip()
 				returned = "".join(tb)
 				if returned.endswith("\n\n"):
 					returned = returned[:-1]
@@ -885,6 +888,78 @@ if __name__ == "__main__":
 			group = t.split("\n")[1][7:]
 		with open("../.ctfinit/" + group + "/" + name, "r") as f:
 			print(f.read())
+	elif argvs[1] == "groups":
+		cwd = os.getcwd()
+		ctfinit = False
+		while cwd != "" and not ctfinit:
+			cfiles = [d for d in os.listdir('.')]
+			if not ".ctfinit" in cfiles:
+				if cwd == "/":
+					cwd = ""
+				else:
+					os.chdir("..")
+					cwd = os.getcwd()
+
+			else:
+				ctfinit = True
+		if cwd == "":
+			print("fatal: not a ctf repository (or any of the parent directories): .ctfinit")
+			sys.exit(1)
+
+		if len(argvs) == 3 and argvs[2] in ["-h", "--help"]:
+			print()
+			print("Usage: groups")
+			print()
+			print("Lists all groups")
+			sys.exit(1)
+		elif len(argvs) == 3 and argvs[2] not in ["-h", "--help"]:
+			print("fatal: groups requires no arguments")
+			sys.exit(1)
+		if len(argvs) > 3:
+			print("fatal: groups requires no arguments")
+			sys.exit(1)
+		with open(".ctfinit/config.json", "r") as f:
+			js = json.load(f)
+		for i in js["groups"].keys():
+			print(f"{i}")
+	elif argvs[1] == "statuses":
+		cwd = os.getcwd()
+		ctfinit = False
+		while cwd != "" and not ctfinit:
+			cfiles = [d for d in os.listdir('.')]
+			if not ".ctfinit" in cfiles:
+				if cwd == "/":
+					cwd = ""
+				else:
+					os.chdir("..")
+					cwd = os.getcwd()
+
+			else:
+				ctfinit = True
+		if cwd == "":
+			print("fatal: not a ctf repository (or any of the parent directories): .ctfinit")
+			sys.exit(1)
+
+		if len(argvs) == 3 and argvs[2] in ["-h", "--help"]:
+			print()
+			print("Usage: statuses")
+			print()
+			print("Lists all statuses")
+			sys.exit(1)
+		elif len(argvs) == 3 and argvs[2] not in ["-h", "--help"]:
+			print("fatal: statuses requires no arguments")
+			sys.exit(1)
+		if len(argvs) > 3:
+			print("fatal: statuses requires no arguments")
+			sys.exit(1)
+		with open(".ctfinit/config.json", "r") as f:
+			js = json.load(f)
+		for i in js["status"].keys():
+			print(f"{i}")
+
+	else:
+		print("ctftool --help")
+		sys.exit(1)
 
 
 
