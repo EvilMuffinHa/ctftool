@@ -625,7 +625,7 @@ if __name__ == "__main__":
 						f.write("\n".join(splitted))
 
 					os.system("git add --all")
-					os.system('git commit -am "Solution removed from ' + name)
+					os.system('git commit -am "Solution removed from ' + name + '"')
 					print("Solution removed from " + name)
 				else:
 					print("fatal: no solution exists")
